@@ -1,0 +1,19 @@
+buildscript {
+    repositories {
+        google()
+        mavenCentral()
+    }
+    dependencies {
+        classpath(libs.react.native.gradle.plugin)
+    }
+}
+plugins {
+    alias(libs.plugins.android.application) apply false
+    alias(libs.plugins.kotlin.android) apply false
+    alias(libs.plugins.kotlin.compose) apply false
+}
+ext {
+    minSdkVersion = 26 // ✅ SET TO AT LEAST 24 or 26
+    compileSdkVersion = 36
+    targetSdkVersion = 36
+}

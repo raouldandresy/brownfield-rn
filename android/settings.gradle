@@ -1,0 +1,63 @@
+import org.gradle.api.initialization.resolve.RepositoriesMode
+
+pluginManagement {
+    repositories {
+        google {
+            content {
+                includeGroupByRegex("com\\.android.*")
+                includeGroupByRegex("com\\.google.*")
+                includeGroupByRegex("androidx.*")
+            }
+        }
+        mavenCentral()
+        gradlePluginPortal()
+    }
+    def reactNativeGradlePlugin = new File(
+            providers.exec {
+                workingDir(rootDir)
+                commandLine("node", "--print", "require.resolve('@react-native/gradle-plugin/package.json', { paths: [require.resolve('react-native/package.json')] })")
+            }.standardOutput.asText.get().trim()
+    ).getParentFile().absolutePath
+    includeBuild(reactNativeGradlePlugin)
+
+    def expoPluginsPath = new File(
+            providers.exec {
+                workingDir(rootDir)
+                commandLine("node", "--print", "require.resolve('expo-modules-autolinking/package.json', { paths: [require.resolve('expo/package.json')] })")
+            }.standardOutput.asText.get().trim(),
+            "../android/expo-gradle-plugin"
+    ).absolutePath
+    includeBuild(expoPluginsPath)
+}
+
+plugins {
+    id("com.facebook.react.settings")
+    id("expo-autolinking-settings")
+}
+dependencyResolutionManagement {
+    repositoriesMode.set(RepositoriesMode.PREFER_PROJECT)
+    repositories {
+        google()
+        mavenCentral()
+        // Add all expo local maven repos dynamically
+        def expoModulesDir = file("$rootDir/node_modules")
+        if (expoModulesDir.exists() && expoModulesDir.isDirectory()) {
+            expoModulesDir.listFiles().each { dir ->
+                def localMaven = new File(dir, "local-maven-repo")
+                if (localMaven.exists()) {
+                    maven { url localMaven }
+                }
+            }
+        }
+    }
+}
+
+extensions.configure(com.facebook.react.ReactSettingsExtension) { ext ->
+    ext.autolinkLibrariesFromCommand(expoAutolinking.rnConfigCommand)
+}
+expoAutolinking.useExpoModules()
+expoAutolinking.useExpoVersionCatalog()
+
+includeBuild(expoAutolinking.reactNativeGradlePlugin)
+rootProject.name = "androidRN"
+include ':app'
